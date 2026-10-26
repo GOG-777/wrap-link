@@ -119,4 +119,9 @@ go test ./pkg/wrap
 
 ## License
 
-MIT
+Released under the [MIT License](LICENSE).
+
+```text
+MIT License
+Copyright (c) 2026 GOG (thgenius.xyz)
+```
