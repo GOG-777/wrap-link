@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wrap · Edge URL Router | wrap.thgenius.xyz</title>
+  <meta name="description" content="Shorten and sign links at the edge. Built in Go with zero external databases.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="frame-bar" id="site-header">
+    <div class="frame-inner">
+      <a href="/" class="brand-cell">
+        <span class="brand-mark">WRAP</span>
+        <span class="brand-host">.thgenius.xyz</span>
+      </a>
+
+      <nav class="frame-nav desktop-nav" aria-label="Primary">
+        <button type="button" class="nav-cell active" data-mode="shorten">01 / Shorten</button>
+        <button type="button" class="nav-cell" data-mode="inspect">02 / Inspect</button>
+        <a href="/docs" class="nav-cell">03 / Docs</a>
+        <button type="button" class="nav-cell theme-toggle-btn" title="Toggle Light / Dark Theme">
+          <span class="theme-label">Dark</span>
+        </button>
+      </nav>
+
+      <div class="mobile-controls">
+        <button type="button" class="mobile-icon-btn theme-toggle-btn" title="Toggle Theme">
+          <span class="theme-label">Dark</span>
+        </button>
+        <button
+          type="button"
+          id="mobile-menu-btn"
+          class="mobile-icon-btn menu-trigger"
+          aria-label="Toggle navigation menu"
+          aria-expanded="false"
+        >
+          <svg id="icon-menu-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="4" y1="7" x2="20" y2="7"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="17" x2="20" y2="17"/>
+          </svg>
+          <svg id="icon-menu-close" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobile-drawer" class="mobile-drawer hidden">
+      <button type="button" class="drawer-link active" data-mode="shorten">
+        <span>01 / Shorten Link</span>
+        <span>→</span>
+      </button>
+      <button type="button" class="drawer-link" data-mode="inspect">
+        <span>02 / Inspect Telemetry</span>
+        <span>→</span>
+      </button>
+      <a href="/docs" class="drawer-link">
+        <span>03 / Documentation &amp; API</span>
+        <span>↗</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="stage">
+    <section id="view-shorten" class="view-section active">
+      <div class="masthead">
+        <div class="masthead-index">SYS.01 / EDGE ROUTER</div>
+        <h1 class="masthead-title">Shorten links. Signed in Go.</h1>
+        <p class="masthead-sub">
+          Fast Base62 aliases and self-verifying stateless links. No accounts, no tracking pixels.
+        </p>
+      </div>
+
+      <form id="shorten-form" class="instrument" novalidate>
+        <div class="instrument-main">
+          <input
+            id="url-input"
+            name="url"
+            type="url"
+            placeholder="Paste destination URL (https://...)"
+            required
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button type="submit" id="submit-btn" class="instrument-submit">
+            Wrap URL →
+          </button>
+        </div>
+
+        <div class="instrument-controls">
+          <div class="control-cell">
+            <div class="cell-head">
+              <span class="cell-label">CUSTOM SLUG</span>
+              <button type="button" id="random-slug-btn" class="inline-trigger" title="Generate random slug">random</button>
+            </div>
+            <div class="slug-row">
+              <span class="slug-prefix">wrap.thgenius.xyz/</span>
+              <input
+                id="alias-input"
+                name="alias"
+                type="text"
+                placeholder="optional-alias"
+                maxlength="48"
+                autocomplete="off"
+                spellcheck="false"
+              >
+            </div>
+          </div>
+
+          <div class="control-cell control-ttl">
+            <div class="cell-head">
+              <span class="cell-label">EXPIRATION</span>
+            </div>
+            <input type="hidden" id="ttl-select" name="ttl" value="never">
+            <div class="ttl-strip" role="radiogroup" aria-label="Link Expiration">
+              <button type="button" class="ttl-opt active" data-ttl="never">∞</button>
+              <button type="button" class="ttl-opt" data-ttl="1h">1H</button>
+              <button type="button" class="ttl-opt" data-ttl="24h">24H</button>
+              <button type="button" class="ttl-opt" data-ttl="7d">7D</button>
+              <button type="button" class="ttl-opt" data-ttl="30d">30D</button>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <div id="shorten-error" class="notice-line hidden" role="alert"></div>
+
+      <section id="result-ticket" class="specimen-ticket hidden" aria-label="Wrapped Link Result">
+        <div class="ticket-main">
+          <div class="ticket-meta-top">
+            <span>SPECIMEN / ACTIVE ROUTE</span>
+            <span id="res-expires">EXPIRES: NEVER</span>
+          </div>
+
+          <div class="ticket-url-row">
+            <a id="res-short-url" href="#" target="_blank" rel="noopener noreferrer" class="ticket-short-link"></a>
+          </div>
+
+          <div class="ticket-action-strip">
+            <button type="button" id="copy-short-btn" class="ticket-btn primary">Copy Short Link</button>
+            <button type="button" id="copy-stateless-btn" class="ticket-btn">Copy Stateless /w/ Link</button>
+            <a id="open-short-link" href="#" target="_blank" rel="noopener noreferrer" class="ticket-btn">Open ↗</a>
+            <button type="button" id="view-stats-btn" class="ticket-btn">Inspect Clicks →</button>
+          </div>
+
+          <div class="ticket-foot">
+            <div class="foot-row">
+              <span class="foot-key">DESTINATION</span>
+              <span id="res-target-url" class="foot-val truncate"></span>
+            </div>
+            <div class="foot-row">
+              <span class="foot-key">STATELESS TOKEN</span>
+              <code id="res-stateless-url" class="foot-val truncate"></code>
+            </div>
+          </div>
+        </div>
+
+        <div class="ticket-stub">
+          <span class="stub-label">QR MATRIX</span>
+          <div class="stub-canvas-frame">
+            <canvas id="qr-canvas" width="136" height="136"></canvas>
+          </div>
+          <button type="button" id="download-qr-btn" class="stub-btn">Save PNG ↓</button>
+        </div>
+      </section>
+
+      <section id="ledger-section" class="ledger-block hidden" aria-label="Recent Links">
+        <div class="ledger-head">
+          <span class="ledger-title">RECENTLY WRAPPED</span>
+          <button type="button" id="clear-history-btn" class="inline-trigger">Clear list</button>
+        </div>
+        <div id="history-list" class="ledger-rows"></div>
+      </section>
+    </section>
+
+    <section id="view-inspect" class="view-section">
+      <div class="masthead">
+        <div class="masthead-index">SYS.02 / TELEMETRY</div>
+        <h1 class="masthead-title">Inspect link activity.</h1>
+        <p class="masthead-sub">
+          Enter any short code or wrapped URL to view redirect counts, timestamps, and referrer hosts.
+        </p>
+      </div>
+
+      <form id="stats-form" class="instrument" novalidate>
+        <div class="instrument-main">
+          <input
+            id="stats-code-input"
+            type="text"
+            placeholder="Enter code (e.g. protocol) or full wrap.thgenius.xyz URL"
+            required
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button type="submit" class="instrument-submit">
+            Lookup →
+          </button>
+        </div>
+      </form>
+
+      <div id="stats-error" class="notice-line hidden" role="alert"></div>
+
+      <div id="stats-sheet" class="telemetry-sheet hidden">
+        <div class="sheet-hero">
+          <div class="sheet-left">
+            <span class="masthead-index">ROUTE RECORD</span>
+            <h2 id="stat-code-title" class="sheet-slug"></h2>
+            <a id="stat-target-url" href="#" target="_blank" rel="noopener noreferrer" class="sheet-dest"></a>
+          </div>
+          <div class="sheet-counter">
+            <span id="stat-clicks" class="sheet-num">00</span>
+            <span class="sheet-unit">REDIRECTS</span>
+          </div>
+        </div>
+
+        <dl class="sheet-dl">
+          <div class="dl-row">
+            <dt>Created</dt>
+            <dd id="stat-created"></dd>
+          </div>
+          <div class="dl-row">
+            <dt>Last Visited</dt>
+            <dd id="stat-last-clicked"></dd>
+          </div>
+          <div class="dl-row">
+            <dt>Expires</dt>
+            <dd id="stat-expires"></dd>
+          </div>
+        </dl>
+
+        <div class="sheet-refs">
+          <div class="ledger-head">
+            <span class="ledger-title">REFERRER HOSTS</span>
+            <button type="button" id="refresh-stats-btn" class="inline-trigger">↻ Refresh</button>
+          </div>
+          <div id="stat-referrers" class="ref-rows"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="frame-footer">
+    <div class="frame-inner footer-inner">
+      <span>wrap.thgenius.xyz · Engineered in Go</span>
+      <div class="footer-links">
+        <a href="/docs">Docs</a>
+        <a href="https://snip.thgenius.xyz" target="_blank" rel="noopener">Snip</a>
+        <a href="https://portfolio.thgenius.xyz" target="_blank" rel="noopener">Portfolio</a>
+        <a href="https://thgenius.xyz" target="_blank" rel="noopener">thgenius.xyz</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

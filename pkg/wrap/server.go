@@ -1,6 +1,7 @@
 package wrap
 
 import (
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,9 @@ import (
 	"sync"
 	"time"
 )
+
+//go:embed static/*
+var embeddedStatic embed.FS
 
 const maxRequestBodyBytes = 8192
 
@@ -112,7 +116,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if path == "/" || path == "/index.html" || path == "/docs" || path == "/docs.html" ||
+	if path == "" || path == "/" || path == "/index.html" || path == "/api/index" || path == "/api/index.go" ||
+		path == "/docs" || path == "/docs.html" ||
 		path == "/app.js" || path == "/styles.css" || path == "/favicon.svg" || path == "/robots.txt" {
 		s.serveStaticFile(w, r, path)
 		return
@@ -366,14 +371,38 @@ func issueRedirect(w http.ResponseWriter, r *http.Request, destination string) {
 }
 
 func (s *Server) serveStaticFile(w http.ResponseWriter, r *http.Request, reqPath string) {
-	if reqPath == "/" {
+	if reqPath == "" || reqPath == "/" || reqPath == "/api/index" || reqPath == "/api/index.go" {
 		reqPath = "/index.html"
 	} else if reqPath == "/docs" {
 		reqPath = "/docs.html"
 	}
 	cleanName := filepath.Base(reqPath)
 	fullPath := filepath.Join(s.publicDir, cleanName)
-	http.ServeFile(w, r, fullPath)
+	if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+		http.ServeFile(w, r, fullPath)
+		return
+	}
+
+	data, err := embeddedStatic.ReadFile("static/" + cleanName)
+	if err != nil {
+		s.renderErrorPage(w, r, http.StatusNotFound, "Page Not Found", "The requested resource does not exist.")
+		return
+	}
+
+	switch filepath.Ext(cleanName) {
+	case ".html":
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	case ".css":
+		w.Header().Set("Content-Type", "text/css; charset=utf-8")
+	case ".js":
+		w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	case ".svg":
+		w.Header().Set("Content-Type", "image/svg+xml")
+	case ".txt":
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	}
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
 }
 
 func (s *Server) renderErrorPage(w http.ResponseWriter, r *http.Request, status int, title string, message string) {

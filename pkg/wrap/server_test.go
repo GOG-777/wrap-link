@@ -127,3 +127,21 @@ func TestShortenRedirectAndStatsFlow(t *testing.T) {
 		t.Fatalf("expected 1 click, got %d", stats.Clicks)
 	}
 }
+
+func TestEmbeddedStaticAssets(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "links.json")
+	srv := NewServer(tmpFile, "/nonexistent-public-dir")
+
+	paths := []string{"/", "/docs", "/styles.css", "/app.js", "/favicon.svg", "/robots.txt"}
+	for _, p := range paths {
+		req := httptest.NewRequest(http.MethodGet, "https://wrap.thgenius.xyz"+p, nil)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("expected 200 OK for embedded path %q, got %d", p, rec.Code)
+		}
+		if rec.Body.Len() == 0 {
+			t.Fatalf("expected non-empty body for embedded path %q", p)
+		}
+	}
+}
