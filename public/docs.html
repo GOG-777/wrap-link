@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation · Wrap | wrap.thgenius.xyz</title>
+  <meta name="description" content="Architecture, HTTP API reference, stateless HMAC wire protocol, and CLI usage for wrap.thgenius.xyz.">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="frame-bar" id="site-header">
+    <div class="frame-inner">
+      <a href="/" class="brand-cell">
+        <span class="brand-mark">WRAP</span>
+        <span class="brand-host">.thgenius.xyz</span>
+      </a>
+
+      <nav class="frame-nav desktop-nav" aria-label="Documentation Navigation">
+        <a href="/" class="nav-cell">← Back to Router</a>
+        <a href="/docs" class="nav-cell active">03 / Docs</a>
+        <button type="button" class="nav-cell theme-toggle-btn" title="Toggle Light / Dark Theme">
+          <span class="theme-label">Dark</span>
+        </button>
+      </nav>
+
+      <div class="mobile-controls">
+        <button type="button" class="mobile-icon-btn theme-toggle-btn" title="Toggle Theme">
+          <span class="theme-label">Dark</span>
+        </button>
+        <button
+          type="button"
+          id="mobile-menu-btn"
+          class="mobile-icon-btn menu-trigger"
+          aria-label="Toggle navigation menu"
+          aria-expanded="false"
+        >
+          <svg id="icon-menu-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="4" y1="7" x2="20" y2="7"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="17" x2="20" y2="17"/>
+          </svg>
+          <svg id="icon-menu-close" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="6" y1="18" x2="18" y2="6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="mobile-drawer" class="mobile-drawer hidden">
+      <a href="/" class="drawer-link">
+        <span>01 / Open URL Router</span>
+        <span>→</span>
+      </a>
+      <a href="/docs" class="drawer-link active">
+        <span>03 / Documentation &amp; API</span>
+        <span>●</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="docs-stage">
+    <section class="docs-intro">
+      <div class="masthead-index">DOCUMENTATION &amp; SPECIFICATION</div>
+      <h1 class="docs-h1">How Wrap works</h1>
+      <p class="docs-lead">
+        Wrap is an open source URL shortener written in pure Go using only the standard library. Every wrapped URL produces both a short Base62 alias and a self-verifying stateless link signed with HMAC-SHA256.
+      </p>
+    </section>
+
+    <section class="docs-section">
+      <h2 class="docs-h2">Architecture</h2>
+      <dl class="docs-dl">
+        <div class="docs-dl-row">
+          <dt>Short aliases (/:code)</dt>
+          <dd>6-character cryptographic Base62 codes or custom slugs stored in a thread-safe memory store with atomic JSON snapshots and live click counting.</dd>
+        </div>
+        <div class="docs-dl-row">
+          <dt>Stateless tokens (/w/:token)</dt>
+          <dd>Raw Flate compressed URLs paired with an 8-byte expiration timestamp and an 80-bit HMAC-SHA256 authentication tag. Resolves permanently with zero database lookups.</dd>
+        </div>
+        <div class="docs-dl-row">
+          <dt>SSRF network guard</dt>
+          <dd>Blocks non-HTTP(S) schemes, embedded credentials, loopback addresses, RFC 1918 private networks, link-local cloud metadata (169.254.169.254), and CGNAT ranges.</dd>
+        </div>
+        <div class="docs-dl-row">
+          <dt>Token bucket rate limiter</dt>
+          <dd>Per-IP token buckets protect link creation (6 burst), visitor redirects (25 burst), and telemetry lookups (15 burst) with standard X-RateLimit headers.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="docs-section">
+      <h2 class="docs-h2">HTTP API Reference</h2>
+      <dl class="docs-dl">
+        <div class="docs-dl-row">
+          <dt>POST /api/shorten</dt>
+          <dd>Accepts JSON <code>{"url": "https://...", "alias": "optional", "ttl": "7d"}</code>. Supported TTL values: <code>never</code>, <code>1h</code>, <code>24h</code>, <code>7d</code>, <code>30d</code>.</dd>
+        </div>
+        <div class="docs-dl-row">
+          <dt>GET /:code</dt>
+          <dd>Issues a 307 Temporary Redirect to the destination URL with <code>Referrer-Policy: no-referrer</code> and increments the route click counter.</dd>
+        </div>
+        <div class="docs-dl-row">
+          <dt>GET /w/:token</dt>
+          <dd>Verifies the constant-time HMAC-SHA256 tag and expiration timestamp, decompresses the URL, and issues a 307 Temporary Redirect.</dd>
+        </div>
+        <div class="docs-dl-row">
+          <dt>GET /api/stats?code=:code</dt>
+          <dd>Returns JSON telemetry including total clicks, creation timestamp, last visited timestamp, expiration time, and referrer host counts.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="docs-section">
+      <h2 class="docs-h2">Terminal Usage</h2>
+      <p class="docs-text">
+        You can shorten URLs and inspect redirect telemetry directly from a terminal using <code>curl</code>.
+      </p>
+
+      <div class="cmd-list">
+        <div class="cmd-block">
+          <div class="cmd-head">
+            <span>Create a short link</span>
+            <button type="button" class="copy-cmd-btn inline-trigger" data-cmd='curl -s -X POST "https://wrap.thgenius.xyz/api/shorten" -H "Content-Type: application/json" -d &apos;{"url":"https://www.thgenius.xyz","alias":"hub","ttl":"7d"}&apos;'>Copy</button>
+          </div>
+          <pre class="cmd-pre">curl -s -X POST "https://wrap.thgenius.xyz/api/shorten" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://www.thgenius.xyz","alias":"hub","ttl":"7d"}'</pre>
+        </div>
+
+        <div class="cmd-block">
+          <div class="cmd-head">
+            <span>Inspect redirect headers and rate-limit status</span>
+            <button type="button" class="copy-cmd-btn inline-trigger" data-cmd='curl -I "https://wrap.thgenius.xyz/hub"'>Copy</button>
+          </div>
+          <pre class="cmd-pre">curl -I "https://wrap.thgenius.xyz/hub"</pre>
+        </div>
+
+        <div class="cmd-block">
+          <div class="cmd-head">
+            <span>Query live click telemetry</span>
+            <button type="button" class="copy-cmd-btn inline-trigger" data-cmd='curl -s "https://wrap.thgenius.xyz/api/stats?code=hub"'>Copy</button>
+          </div>
+          <pre class="cmd-pre">curl -s "https://wrap.thgenius.xyz/api/stats?code=hub"</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="docs-cta">
+      <div>
+        <div class="docs-cta-title">Ready to shorten a link?</div>
+        <div class="docs-cta-sub">Open the router to create a short code or stateless token.</div>
+      </div>
+      <a href="/" class="ticket-btn primary">Open Router →</a>
+    </section>
+  </main>
+
+  <footer class="frame-footer">
+    <div class="frame-inner footer-inner">
+      <span>Part of the <a href="https://thgenius.xyz" target="_blank" rel="noopener">thgenius.xyz</a> ecosystem.</span>
+      <div class="footer-links">
+        <a href="/">Router</a>
+        <a href="/api/health" target="_blank" rel="noopener">Health</a>
+        <a href="https://snip.thgenius.xyz" target="_blank" rel="noopener">Snip</a>
+        <a href="https://portfolio.thgenius.xyz" target="_blank" rel="noopener">Portfolio</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

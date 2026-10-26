@@ -1,0 +1,22 @@
+# Compiled binaries
+/wrap
+wrap.exe
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+*.out
+
+# Local store snapshot
+links.json
+links.json.tmp
+
+# Environment files
+.env
+.env.local
+
+# Vercel build output
+.vercel

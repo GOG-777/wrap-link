@@ -1,0 +1,20 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index.go"
+    },
+    {
+      "source": "/docs",
+      "destination": "/docs.html"
+    },
+    {
+      "source": "/w/:code",
+      "destination": "/api/index.go?mode=w&code=:code"
+    },
+    {
+      "source": "/:code((?!index\\.html|docs\\.html|docs|app\\.js|styles\\.css|favicon\\.svg|robots\\.txt).*)",
+      "destination": "/api/index.go?code=:code"
+    }
+  ]
+}
